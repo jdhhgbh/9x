@@ -2,23 +2,22 @@ import os
 import glob
 import re
 import easyocr
-from playwright.sync_api import sync_playwright
+import requests
 
 def main():
-    # 1. قراءة الرمز المكتوب في GitHub Workflow
+    # 1. قراءة الرمز المدخل من GitHub Actions
     pairing_code = os.environ.get("INPUT_CODE", "").strip()
-    
     if not pairing_code:
         raise Exception("❌ لم يتم كتابة رمز الربط!")
         
     print(f"✅ رمز الربط المدخل: {pairing_code}")
 
-    # 2. قراءة بيانات الحساب من الصورة المرفوعة
+    # 2. قراءة بيانات الحساب من الصورة
     reader = easyocr.Reader(['en', 'ar'])
     images = glob.glob("*.jpg") + glob.glob("*.jpeg") + glob.glob("*.png")
     
     if not images:
-        raise Exception("❌ لم يتم العثور على أي صورة لبيانات الحساب في المستودع!")
+        raise Exception("❌ لم يتم العثور على أي صورة للبيانات في المستودع!")
 
     print(f"🔍 جاري قراءة البيانات من الصورة: {images[0]}")
     data_text = " ".join(reader.readtext(images[0], detail=0))
@@ -31,27 +30,40 @@ def main():
     password = pass_match.group(1) if pass_match else ""
     host = host_match.group(1) if host_match else ""
 
-    # 3. الأتمتة على موقع 9xtream
-    print("🌐 جاري إدخال البيانات في الموقع...")
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        
-        page.goto("https://remote.9xtream.net/")
-        page.fill("input", pairing_code)
-        page.keyboard.press("Enter")
-        page.wait_for_timeout(2000)
+    print(f"📌 البيانات المستخرجة:")
+    print(f"   - User: {username}")
+    print(f"   - Host: {host}")
 
-        page.fill("input[placeholder*='Name']", "IPTV Stream")
-        page.fill("input[placeholder*='Username']", username)
-        page.fill("input[placeholder*='Password']", password)
-        page.fill("input[placeholder*='Host']", host)
-        
-        page.click("button:has-text('ADD PLAYLIST')")
-        page.wait_for_timeout(3000)
-        browser.close()
+    # 3. إرسال البيانات مباشرة إلى سيرفر 9xtream المباشر
+    print("🚀 جاري الربط وإرسال البيانات مباشرة عبر الـ API...")
+    
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://remote.9xtream.net/",
+        "Origin": "https://remote.9xtream.net"
+    })
 
-    print("🎉 تم ربط التلفزيون وإضافة القائمة بنجاح!")
+    # إرسال طلب الربط والإضافة
+    payload = {
+        "code": pairing_code,
+        "name": "IPTV Stream",
+        "username": username,
+        "password": password,
+        "host": host
+    }
+
+    response = session.post("https://remote.9xtream.net/api/add-playlist", data=payload)
+
+    if response.status_code == 200:
+        print("🎉 تم ربط التلفزيون وإضافة القائمة بنجاح!")
+    else:
+        # محاولة عبر المسار البديل (Form Submit)
+        response_alt = session.post("https://remote.9xtream.net/", data=payload)
+        if response_alt.status_code == 200:
+            print("🎉 تم ربط التلفزيون بنجاح عبر المسار البديل!")
+        else:
+            raise Exception(f"❌ فشل الربط! رمز الاستجابة: {response.status_code}")
 
 if __name__ == '__main__':
     main()
