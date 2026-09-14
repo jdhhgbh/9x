@@ -1,7 +1,12 @@
 name: 9Xtream Auto Linker
 
 on:
-  workflow_dispatch: # تشغيل يدوي بضغطة زر
+  workflow_dispatch:
+    inputs:
+      pairing_code:
+        description: 'اكتب رمز الربط المتغير (مثل VWDS)'
+        required: true
+        type: string
 
 jobs:
   run-bot:
@@ -21,4 +26,6 @@ jobs:
           playwright install --with-deps chromium
 
       - name: Run Script
+        env:
+          INPUT_CODE: ${{ inputs.pairing_code }}
         run: python script.py
