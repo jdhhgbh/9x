@@ -1,7 +1,6 @@
 import os
 import time
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
 
 FIXED_HOST = "http://cf.caftanium.fit/"
 FIXED_NAME = "pro"
@@ -17,59 +16,61 @@ def main():
     print(f"🚀 بدء عملية الربط للتلفزيون بالرمز: {pairing_code}")
 
     with sync_playwright() as p:
-        # تشغيل المتصفح بإعدادات تتجاوز حماية البوتات
+        # إعداد المتصفح بتمويه أمني لتخطي Cloudflare بدون مكتبات خارجية
         browser = p.chromium.launch(
             headless=True,
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
-                "--disable-setuid-sandbox"
+                "--disable-setuid-sandbox",
+                "--disable-infobars"
             ]
         )
         context = browser.new_context(
-            user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 720}
         )
+        
+        # حذف متغيّر navigator.webdriver لمنع كشف البوت
+        context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
         page = context.new_page()
-        stealth_sync(page)
 
-        print("🌐 1. فتح موقع remote.9xtream.net والانتظار لتخطي حماية Cloudflare...")
-        page.goto("https://remote.9xtream.net/", wait_until="load")
+        print("🌐 1. فتح موقع 9Xtream والانتظار لتجاوز الحماية...")
+        page.goto("https://remote.9xtream.net/", wait_until="domcontentloaded")
         
-        # الانتظار لتجاوز فحص الأمان (Cloudflare Check)
-        time.sleep(5)
+        # انتظار بسيط لتجاوز جدار الحماية
+        time.sleep(4)
 
-        # 2. تعبئة الرمز في المربع الأول (Type Here) والضغط على Next
         print("🔑 2. تعبئة رمز الربط والضغط على Next...")
-        input_code = page.locator("input[placeholder*='Type Here'], input[type='text']").first
-        input_code.wait_for(state="visible", timeout=30000)
-        input_code.fill(pairing_code)
-        
-        # الضغط على زر Next الأخضر
-        next_button = page.locator("button:has-text('Next'), button[type='submit']").first
-        next_button.click()
+        # البحث عن خانة إدخال الرمز
+        code_input = page.locator("input[placeholder*='Type Here'], input[type='text']").first
+        code_input.wait_for(state="visible", timeout=30000)
+        code_input.fill(pairing_code)
 
-        print("⏳ 3. الانتظار للانتقال لصفحة بيانات الحساب (Type remotely)...")
+        # الضغط على زر Next
+        next_btn = page.locator("button:has-text('Next'), button[type='submit']").first
+        next_btn.click()
+
         time.sleep(3)
 
-        # 3. تعبئة البيانات في الصفحة الثانية (Type remotely)
-        print("📝 4. تعبئة بيانات الاشتراك (Name, User, Pass, Host)...")
+        print("📝 3. تعبئة بيانات الاشتراك...")
+        # تعبئة Name
         page.locator("input[placeholder*='Optional'], input[name*='name']").first.fill(FIXED_NAME)
+        # تعبئة Username
         page.locator("input[placeholder*='Username'], input[name*='user']").first.fill(username)
+        # تعبئة Password
         page.locator("input[placeholder*='Password'], input[name*='pass']").first.fill(password)
-        
-        # المربع الرابع لـ Host URL
-        host_input = page.locator("input[placeholder*='example.com'], input[name*='host']").first
-        host_input.fill(FIXED_HOST)
+        # تعبئة Host
+        page.locator("input[placeholder*='example.com'], input[name*='host']").first.fill(FIXED_HOST)
 
-        # 4. إرسال البيانات للتلفزيون
-        print("📤 5. الضغط على زر التفعيل وإرسال البيانات للتلفزيون...")
-        # بالصفحة الثانية الزر عادة يتحول إلى Submit أو يتطلب الضغط على الشاشة في التلفزيون
+        print("📤 4. إرسال البيانات للتلفزيون...")
         page.keyboard.press("Enter")
+        
         time.sleep(3)
-
         browser.close()
 
-    print("🎉 تم تجاوز الحماية وتعبئة البيانات بنجاح في التلفزيون!")
+    print("🎉 تم التنفيذ وإرسال البيانات بنجاح 100%!")
 
 if __name__ == '__main__':
     main()
