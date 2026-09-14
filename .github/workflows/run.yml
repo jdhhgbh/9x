@@ -1,10 +1,18 @@
-name: 9Xtream Auto Linker
+name: 9Xtream Quick Linker
 
 on:
   workflow_dispatch:
     inputs:
       pairing_code:
-        description: 'اكتب رمز الربط المتغير (مثل VWDS)'
+        description: 'رمز الربط المتغير من شاشة التلفزيون (مثلاً VWDS)'
+        required: true
+        type: string
+      username:
+        description: 'اسم المستخدم (Username)'
+        required: true
+        type: string
+      password:
+        description: 'كلمة المرور (Password)'
         required: true
         type: string
 
@@ -20,12 +28,12 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Dependencies
-        run: |
-          pip install easyocr playwright
-          playwright install --with-deps chromium
+      - name: Install Requests
+        run: pip install requests
 
-      - name: Run Script
+      - name: Run Direct Script
         env:
           INPUT_CODE: ${{ inputs.pairing_code }}
+          INPUT_USER: ${{ inputs.username }}
+          INPUT_PASS: ${{ inputs.password }}
         run: python script.py
