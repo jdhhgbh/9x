@@ -1,10 +1,10 @@
-name: 9Xtream Stealth Linker
+name: 9Xtream Linker
 
 on:
   workflow_dispatch:
     inputs:
       pairing_code:
-        description: 'رمز الربط من شاشة التلفزيون (مثلاً 3ZX4)'
+        description: 'رمز الربط من التلفزيون (مثلاً 3ZX4)'
         required: true
         type: string
       username:
@@ -28,12 +28,12 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Stealth & Playwright
+      - name: Install Playwright
         run: |
-          pip install playwright playwright-stealth
+          pip install playwright
           playwright install --with-deps chromium
 
-      - name: Run Stealth Script
+      - name: Run Script
         env:
           INPUT_CODE: ${{ inputs.pairing_code }}
           INPUT_USER: ${{ inputs.username }}
