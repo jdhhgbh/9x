@@ -1,0 +1,36 @@
+name: IPTV 9Xtream Auto Pairing
+
+on:
+  push:
+    paths:
+      - 'iptv_image.jpg'
+      - 'remote_code.jpg'
+    branches: [ "main" ]
+
+jobs:
+  auto-pair:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          # تثبيت OCR ولغات إضافية مثل العربية
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ara libgl1-mesa-glx
+          pip install opencv-python-headless pytesseract requests
+
+      - name: Process Images and Pair
+        # هذا السكربت يقوم بكل العمل وإرسال الطلب
+        run: |
+          python auto_pair.py iptv_image.jpg remote_code.jpg
